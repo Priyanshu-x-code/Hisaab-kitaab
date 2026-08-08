@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mera Hisaab — Roz Ka Hisaab</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="page">
+  <header class="top">
+    <div class="crumb"><a class="back-arrow" href="index.html">←</a> Worker Panel</div>
+    <div class="stamp"><span class="star">★</span>DATE: <span id="dateOut"></span></div>
+  </header>
+
+  <h1 class="title" id="nameOut">—</h1>
+  <p class="subtitle">Aapka daily hisaab</p>
+
+  <div id="err" class="error-box"></div>
+
+  <div class="card stack">
+    <div class="row">
+      <div style="flex:1"><label>Din Kaam Kiya (Days)</label><div class="num" id="daysOut" style="font-size:1.4rem">—</div></div>
+      <div style="flex:1"><label>Rate / Din</label><div class="num" id="rateOut" style="font-size:1.4rem">—</div></div>
+    </div>
+    <div class="total-line">
+      <span>Total Amount</span>
+      <span class="amount" id="amountOut">—</span>
+    </div>
+    <div class="row">
+      <div style="flex:1"><label>Advance Liya</label><div class="num amount" id="advanceOut">—</div></div>
+    </div>
+  </div>
+
+  <button class="btn-danger btn-block" id="logoutBtn">Logout</button>
+</div>
+<script src="js/api.js"></script>
+<script>
+document.getElementById('dateOut').textContent = todayStamp();
+const err = document.getElementById('err');
+Session.requireRole('worker');
+
+async function load() {
+  try {
+    const w = await api('/workers/me');
+    document.getElementById('nameOut').textContent = w.name;
+    document.getElementById('daysOut').textContent = w.days_worked;
+    document.getElementById('rateOut').textContent = money(w.per_day_rate);
+    document.getElementById('amountOut').textContent = money(w.amount);
+    document.getElementById('advanceOut').textContent = money(w.advance_amount);
+  } catch (ex) {
+    showError(err, ex.message);
+  }
+}
+load();
+
+document.getElementById('logoutBtn').addEventListener('click', () => {
+  Session.clear();
+  window.location.href = 'index.html';
+});
+</script>
+</body>
+</html>

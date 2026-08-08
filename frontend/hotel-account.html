@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hotel Info — Roz Ka Hisaab</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="page">
+  <header class="top">
+    <div class="crumb"><a class="back-arrow" href="index.html">←</a> Hotel Info</div>
+    <div class="stamp"><span class="star">★</span>DATE: <span id="dateOut"></span></div>
+  </header>
+
+  <div id="err" class="error-box"></div>
+  <div id="loginNeeded" class="card" style="display:none">
+    <p class="hint">Hotel account dekhne ke liye login karo.</p>
+    <div class="row">
+      <a class="btn" href="worker-login.html">Worker Login</a>
+      <a class="btn" href="malik-auth.html">Malik Login</a>
+    </div>
+  </div>
+
+  <div id="content" style="display:none">
+    <div class="search-bar">
+      <input id="search" placeholder="Hotel Name Search Karo...">
+    </div>
+
+    <div id="malikActions" class="row" style="margin-bottom:16px; display:none">
+      <a class="btn-primary btn" href="hotel-new.html">+ Add New Hotel</a>
+      <a class="btn" href="party-new.html">+ Add New Party</a>
+    </div>
+
+    <div class="card" style="padding:0" id="listCard">
+      <div id="rows"></div>
+      <p class="empty-state" id="empty" style="display:none">Koi hotel nahi mila.</p>
+    </div>
+  </div>
+</div>
+<script src="js/api.js"></script>
+<script>
+document.getElementById('dateOut').textContent = todayStamp();
+const err = document.getElementById('err');
+const user = Session.user();
+
+if (!user || !Session.token()) {
+  document.getElementById('loginNeeded').style.display = 'block';
+} else {
+  document.getElementById('content').style.display = 'block';
+  if (user.role === 'malik') document.getElementById('malikActions').style.display = 'flex';
+}
+
+let timer;
+document.getElementById('search').addEventListener('input', (e) => {
+  clearTimeout(timer);
+  timer = setTimeout(() => load(e.target.value.trim()), 250);
+});
+
+async function load(q = '') {
+  try {
+    const hotels = await api(`/hotels${q ? `?q=${encodeURIComponent(q)}` : ''}`);
+    const rows = document.getElementById('rows');
+    document.getElementById('empty').style.display = hotels.length ? 'none' : 'block';
+    rows.innerHTML = hotels.map(h => `
+      <a href="hotel-detail.html?id=${h.id}" style="display:flex; justify-content:space-between; align-items:center; padding:14px 18px; border-bottom:1px solid var(--paper-line); text-decoration:none; color:var(--ink)">
+        <span style="font-family:'Bitter',serif; font-weight:600">${h.name}</span>
+        <span class="amount">${money(h.hotel_amount)} / party</span>
+      </a>
+    `).join('');
+  } catch (ex) { showError(err, ex.message); }
+}
+
+if (Session.token()) load();
+</script>
+</body>
+</html>

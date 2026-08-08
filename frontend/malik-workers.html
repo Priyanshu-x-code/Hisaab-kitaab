@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Worker Info — Roz Ka Hisaab</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="page">
+  <header class="top">
+    <div class="crumb"><a class="back-arrow" href="malik-dashboard.html">←</a> Malik Panel → Worker Info</div>
+    <div class="stamp"><span class="star">★</span>DATE: <span id="dateOut"></span></div>
+  </header>
+
+  <div id="err" class="error-box"></div>
+
+  <div class="card" style="overflow-x:auto">
+    <table>
+      <thead>
+        <tr><th>#</th><th>Name</th><th>Days</th><th>Rate</th><th>Amount</th><th>Advance</th><th>Contact</th><th></th></tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
+    <p class="empty-state" id="empty" style="display:none">Abhi tak koi worker register nahi hua.</p>
+  </div>
+</div>
+
+<!-- edit dialog, lightweight inline card -->
+<div class="page" id="editWrap" style="display:none; position:fixed; inset:0; background:rgba(38,36,32,0.45); max-width:none; padding:20px;">
+  <div class="card" style="max-width:420px; margin: 10vh auto;">
+    <h1 class="title" style="font-size:1.3rem" id="editName">Edit Worker</h1>
+    <div id="editErr" class="error-box"></div>
+    <form id="editForm" class="stack">
+      <div class="field"><label>Rate / Din</label><input id="editRate" type="number" step="1" min="0"></div>
+      <div class="field"><label>Advance Amount</label><input id="editAdvance" type="number" step="1" min="0"></div>
+      <div class="field"><label>Contact Number</label><input id="editPhone"></div>
+      <div class="row">
+        <button type="submit" class="btn-primary" style="flex:1">Save</button>
+        <button type="button" class="btn" id="cancelEdit" style="flex:1">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="js/api.js"></script>
+<script>
+document.getElementById('dateOut').textContent = todayStamp();
+const err = document.getElementById('err');
+Session.requireRole('malik');
+
+let workers = [];
+
+async function load() {
+  try {
+    workers = await api('/workers');
+    render();
+  } catch (ex) { showError(err, ex.message); }
+}
+
+function render() {
+  const rows = document.getElementById('rows');
+  document.getElementById('empty').style.display = workers.length ? 'none' : 'block';
+  rows.innerHTML = workers.map((w, i) => `
+    <tr>
+      <td class="ledger-index">${i + 1}.</td>
+      <td>${w.name}</td>
+      <td class="num">${w.days_worked}</td>
+      <td class="num">${money(w.per_day_rate)}</td>
+      <td class="amount">${money(w.amount)}</td>
+      <td class="num">${money(w.advance_amount)}</td>
+      <td class="num">${w.phone || '—'}</td>
+      <td>
+        <button class="btn-sm" data-edit="${w.id}">Change</button>
+        <button class="btn-sm btn-danger" data-clear="${w.id}">Clear</button>
+      </td>
+    </tr>
+  `).join('');
+
+  rows.querySelectorAll('[data-edit]').forEach(b => b.addEventListener('click', () => openEdit(b.dataset.edit)));
+  rows.querySelectorAll('[data-clear]').forEach(b => b.addEventListener('click', () => clearWorker(b.dataset.clear)));
+}
+
+let editingId = null;
+function openEdit(id) {
+  const w = workers.find(x => String(x.id) === String(id));
+  editingId = id;
+  document.getElementById('editName').textContent = w.name;
+  document.getElementById('editRate').value = w.per_day_rate;
+  document.getElementById('editAdvance').value = w.advance_amount;
+  document.getElementById('editPhone').value = w.phone || '';
+  hideError(document.getElementById('editErr'));
+  document.getElementById('editWrap').style.display = 'block';
+}
+document.getElementById('cancelEdit').addEventListener('click', () => {
+  document.getElementById('editWrap').style.display = 'none';
+});
+
+document.getElementById('editForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const editErr = document.getElementById('editErr');
+  try {
+    await api(`/workers/${editingId}`, { method: 'PATCH', body: {
+      per_day_rate: Number(document.getElementById('editRate').value),
+      advance_amount: Number(document.getElementById('editAdvance').value),
+      phone: document.getElementById('editPhone').value.trim(),
+    }});
+    document.getElementById('editWrap').style.display = 'none';
+    await load();
+  } catch (ex) { showError(editErr, ex.message); }
+});
+
+async function clearWorker(id) {
+  if (!confirm('Is worker ka hisaab clear kar dein? Days aur amount zero ho jayenge.')) return;
+  try {
+    await api(`/workers/${id}/clear`, { method: 'POST' });
+    await load();
+  } catch (ex) { showError(err, ex.message); }
+}
+
+load();
+</script>
+</body>
+</html>

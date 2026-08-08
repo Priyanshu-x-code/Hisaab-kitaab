@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Malik Panel — Roz Ka Hisaab</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="page">
+  <header class="top">
+    <div class="crumb"><a class="back-arrow" href="index.html">←</a> Malik Panel 🔒</div>
+    <div class="stamp"><span class="star">★</span>DATE: <span id="dateOut"></span></div>
+  </header>
+
+  <div class="card">
+    <div id="err" class="error-box"></div>
+
+    <div id="setupBlock" style="display:none">
+      <p class="hint" style="margin-bottom:14px">Pehli baar? Yahan se Malik account set up karo — pehla registered user hi Malik banega.</p>
+      <form id="setupForm" class="stack">
+        <div class="field"><label for="sName">Name</label><input id="sName" required></div>
+        <div class="field"><label for="sPhone">Phone Number</label><input id="sPhone" required inputmode="numeric"></div>
+        <div class="field"><label for="sPass">Password Set Karo</label><input id="sPass" type="password" required></div>
+        <button type="submit" class="btn-primary btn-block">Malik Account Banao</button>
+      </form>
+    </div>
+
+    <div id="loginBlock" style="display:none">
+      <form id="loginForm" class="stack">
+        <div class="field"><label for="lPhone">Phone Number</label><input id="lPhone" required inputmode="numeric"></div>
+        <div class="field"><label for="lPass">Password</label><input id="lPass" type="password" required></div>
+        <button type="submit" class="btn-primary btn-block">Login</button>
+      </form>
+    </div>
+  </div>
+</div>
+<script src="js/api.js"></script>
+<script>
+document.getElementById('dateOut').textContent = todayStamp();
+const err = document.getElementById('err');
+
+(async function init() {
+  try {
+    const { exists } = await api('/auth/malik-exists');
+    document.getElementById(exists ? 'loginBlock' : 'setupBlock').style.display = 'block';
+  } catch (ex) {
+    showError(err, ex.message);
+  }
+})();
+
+document.getElementById('setupForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  hideError(err);
+  try {
+    const data = await api('/auth/register-malik', { method: 'POST', body: {
+      name: document.getElementById('sName').value.trim(),
+      phone: document.getElementById('sPhone').value.trim(),
+      password: document.getElementById('sPass').value,
+    }});
+    Session.save(data.token, data.user);
+    window.location.href = 'malik-dashboard.html';
+  } catch (ex) { showError(err, ex.message); }
+});
+
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  hideError(err);
+  try {
+    const data = await api('/auth/login-malik', { method: 'POST', body: {
+      phone: document.getElementById('lPhone').value.trim(),
+      password: document.getElementById('lPass').value,
+    }});
+    Session.save(data.token, data.user);
+    window.location.href = 'malik-dashboard.html';
+  } catch (ex) { showError(err, ex.message); }
+});
+</script>
+</body>
+</html>

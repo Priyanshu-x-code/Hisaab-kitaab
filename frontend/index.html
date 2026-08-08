@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Roz Ka Hisaab</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="page">
+  <header class="top">
+    <div class="crumb">📒 Roz Ka Hisaab</div>
+    <div class="stamp"><span class="star">★</span>DATE: <span id="dateOut"></span><br>PAGE: 01</div>
+  </header>
+
+  <h1 class="title">Roz Ka Hisaab</h1>
+  <p class="subtitle">Hotel aur party workers ka daily wage hisaab — ek jagah.</p>
+
+  <nav class="stack">
+    <a class="nav-tile" href="register.html">New Register <span class="arrow">→</span></a>
+    <a class="nav-tile" href="worker-login.html">Worker Panel <span class="arrow">→</span></a>
+    <a class="nav-tile locked" href="malik-auth.html">Malik Panel <span class="arrow">→</span></a>
+    <a class="nav-tile" href="hotel-account.html">Check Hotel Account <span class="arrow">→</span></a>
+  </nav>
+</div>
+<script src="js/api.js"></script>
+<script>document.getElementById('dateOut').textContent = todayStamp();</script>
+</body>
+</html>

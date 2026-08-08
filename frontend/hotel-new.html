@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Add New Hotel — Roz Ka Hisaab</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="page">
+  <header class="top">
+    <div class="crumb"><a class="back-arrow" href="hotel-account.html">←</a> Malik Info → Hotel Info → Add New Hotel</div>
+    <div class="stamp"><span class="star">★</span>DATE: <span id="dateOut"></span></div>
+  </header>
+
+  <div class="card">
+    <div id="err" class="error-box"></div>
+    <form id="form" class="stack">
+      <div class="field"><label for="name">Hotel Name</label><input id="name" required></div>
+      <div class="field"><label for="amount">Hotel Amount (per party, per worker)</label><input id="amount" type="number" min="0" step="1" required></div>
+      <button type="submit" class="btn-primary btn-block">Isse Hotel List Mein Add Karo</button>
+    </form>
+    <p class="hint">Yeh hotel add hoke Hotel List mein show hoga aur naya party add karte waqt select ho sakega.</p>
+  </div>
+</div>
+<script src="js/api.js"></script>
+<script>
+document.getElementById('dateOut').textContent = todayStamp();
+Session.requireRole('malik');
+const err = document.getElementById('err');
+
+document.getElementById('form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  hideError(err);
+  try {
+    const hotel = await api('/hotels', { method: 'POST', body: {
+      name: document.getElementById('name').value.trim(),
+      hotel_amount: Number(document.getElementById('amount').value),
+    }});
+    window.location.href = `hotel-detail.html?id=${hotel.id}`;
+  } catch (ex) { showError(err, ex.message); }
+});
+</script>
+</body>
+</html>

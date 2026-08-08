@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Worker Panel — Roz Ka Hisaab</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="page">
+  <header class="top">
+    <div class="crumb"><a class="back-arrow" href="index.html">←</a> Worker Panel</div>
+    <div class="stamp"><span class="star">★</span>DATE: <span id="dateOut"></span></div>
+  </header>
+
+  <div class="card">
+    <div id="err" class="error-box"></div>
+    <form id="loginForm" class="stack">
+      <div class="field">
+        <label for="phone">Apna Phone Number Daalein</label>
+        <input id="phone" required inputmode="numeric" autocomplete="tel">
+      </div>
+      <button type="submit" class="btn-primary btn-block">Dekho Mera Hisaab</button>
+    </form>
+    <p class="hint">Naye ho? <a href="register.html">Pehle Register karo</a>.</p>
+  </div>
+</div>
+<script src="js/api.js"></script>
+<script>
+document.getElementById('dateOut').textContent = todayStamp();
+const err = document.getElementById('err');
+
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  hideError(err);
+  const phone = document.getElementById('phone').value.trim();
+  try {
+    const data = await api('/auth/login-worker', { method: 'POST', body: { phone } });
+    Session.save(data.token, data.user);
+    window.location.href = 'worker-dashboard.html';
+  } catch (ex) {
+    showError(err, ex.message);
+  }
+});
+</script>
+</body>
+</html>

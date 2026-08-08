@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Add New Party — Roz Ka Hisaab</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="page">
+  <header class="top">
+    <div class="crumb"><a class="back-arrow" href="hotel-account.html">←</a> Malik Info → Hotel Info → Add New Party</div>
+    <div class="stamp"><span class="star">★</span>DATE: <span id="dateOut"></span></div>
+  </header>
+
+  <div class="card">
+    <div id="err" class="error-box"></div>
+    <form id="form" class="stack">
+      <div class="field">
+        <label for="hotel">Hotel Name</label>
+        <select id="hotel" required></select>
+      </div>
+      <div class="field">
+        <label for="category">Category</label>
+        <select id="category" required>
+          <option value="lunch">Lunch</option>
+          <option value="dinner">Dinner</option>
+          <option value="breakfast">Breakfast</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="date">Date</label>
+        <input id="date" type="date" required>
+      </div>
+      <div class="field">
+        <label for="count">How Many Worker</label>
+        <input id="count" type="number" min="1" max="50" value="1" required>
+      </div>
+
+      <div id="slots" class="stack"></div>
+
+      <button type="submit" class="btn-primary btn-block">Add</button>
+    </form>
+    <p class="hint">Add karte hi yeh sara data selected hotel ke Hotel Info mein save ho jayega, aur har selected worker ke account mein automatic ek din add ho jayega.</p>
+  </div>
+</div>
+<script src="js/api.js"></script>
+<script>
+document.getElementById('dateOut').textContent = todayStamp();
+Session.requireRole('malik');
+const err = document.getElementById('err');
+const params = new URLSearchParams(location.search);
+const presetHotelId = params.get('hotel_id');
+
+let workers = [];
+
+async function init() {
+  try {
+    const [hotels, workerList] = await Promise.all([api('/hotels'), api('/workers')]);
+    workers = workerList;
+    const hotelSelect = document.getElementById('hotel');
+    hotelSelect.innerHTML = hotels.map(h => `<option value="${h.id}">${h.name}</option>`).join('');
+    if (presetHotelId) hotelSelect.value = presetHotelId;
+    document.getElementById('date').valueAsDate = new Date();
+    renderSlots();
+  } catch (ex) { showError(err, ex.message); }
+}
+
+function renderSlots() {
+  const count = Math.max(1, Number(document.getElementById('count').value) || 1);
+  const slots = document.getElementById('slots');
+  const options = workers.map(w => `<option value="${w.id}">${w.name}</option>`).join('');
+  slots.innerHTML = Array.from({ length: count }, (_, i) => `
+    <div class="field">
+      <label>Worker ${i + 1}</label>
+      <select data-slot="${i}"><option value="">— chuno —</option>${options}</select>
+    </div>
+  `).join('');
+}
+document.getElementById('count').addEventListener('input', renderSlots);
+
+document.getElementById('form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  hideError(err);
+  const slotSelects = [...document.querySelectorAll('#slots select')];
+  const worker_ids = slotSelects.map(s => Number(s.value)).filter(Boolean);
+
+  if (worker_ids.length === 0) return showError(err, 'Kam se kam ek worker chuno');
+  if (new Set(worker_ids).size !== worker_ids.length) return showError(err, 'Ek hi worker do baar select nahi ho sakta');
+
+  try {
+    await api('/parties', { method: 'POST', body: {
+      hotel_id: Number(document.getElementById('hotel').value),
+      category: document.getElementById('category').value,
+      date: document.getElementById('date').value,
+      worker_ids,
+    }});
+    window.location.href = `hotel-detail.html?id=${document.getElementById('hotel').value}`;
+  } catch (ex) { showError(err, ex.message); }
+});
+
+init();
+</script>
+</body>
+</html>

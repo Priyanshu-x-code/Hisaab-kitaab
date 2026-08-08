@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Party Detail — Roz Ka Hisaab</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="page">
+  <header class="top">
+    <div class="crumb"><a class="back-arrow" id="backLink" href="hotel-account.html">←</a> <span id="crumbOut">Date</span></div>
+    <div class="stamp"><span class="star">★</span>DATE: <span id="dateOut"></span></div>
+  </header>
+
+  <div id="err" class="error-box"></div>
+
+  <div class="card">
+    <div class="row" style="margin-bottom:10px">
+      <div><label>Date</label><div id="dateVal" style="font-family:'Bitter',serif; font-weight:600">—</div></div>
+      <div><label>Category</label><span class="pill" id="catVal">—</span></div>
+    </div>
+
+    <label style="margin-top:10px">List of Worker</label>
+    <table>
+      <tbody id="rows"></tbody>
+    </table>
+
+    <div class="total-line">
+      <span>Total Amount</span>
+      <span class="amount" id="totalOut">₹0</span>
+    </div>
+  </div>
+</div>
+
+<div class="page" id="changeWrap" style="display:none; position:fixed; inset:0; background:rgba(38,36,32,0.45); max-width:none; padding:20px;">
+  <div class="card" style="max-width:420px; margin: 12vh auto;">
+    <h1 class="title" style="font-size:1.2rem">Worker Change Karo</h1>
+    <div id="changeErr" class="error-box"></div>
+    <div class="field">
+      <label>Naya Worker</label>
+      <select id="newWorker"></select>
+    </div>
+    <div class="row" style="margin-top:14px">
+      <button class="btn-primary" id="confirmChange" style="flex:1">Confirm</button>
+      <button class="btn" id="cancelChange" style="flex:1">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/api.js"></script>
+<script>
+document.getElementById('dateOut').textContent = todayStamp();
+const err = document.getElementById('err');
+const user = Session.user();
+const params = new URLSearchParams(location.search);
+const hotelId = params.get('hotel_id');
+const partyId = params.get('party_id');
+document.getElementById('backLink').href = `hotel-detail.html?id=${hotelId}`;
+
+let allWorkers = [];
+let currentWorkerIds = [];
+
+async function load() {
+  try {
+    const [detail, workerList] = await Promise.all([
+      api(`/hotels/${hotelId}/parties/${partyId}`),
+      api('/workers'),
+    ]);
+    allWorkers = workerList;
+    document.getElementById('crumbOut').textContent = `${detail.hotel.name} → ${detail.party.date}`;
+    document.getElementById('dateVal').textContent = detail.party.date;
+    document.getElementById('catVal').textContent = detail.party.category;
+    document.getElementById('totalOut').textContent = money(detail.total_amount);
+    currentWorkerIds = detail.workers.map(w => w.id);
+
+    const rows = document.getElementById('rows');
+    rows.innerHTML = detail.workers.map((w, i) => `
+      <tr>
+        <td class="ledger-index">${i + 1}.</td>
+        <td>${w.name}</td>
+        <td>${user && user.role === 'malik' ? `<button class="btn-sm" data-change="${w.id}">Change</button>` : ''}</td>
+      </tr>
+    `).join('');
+    rows.querySelectorAll('[data-change]').forEach(b => b.addEventListener('click', () => openChange(b.dataset.change)));
+  } catch (ex) { showError(err, ex.message); }
+}
+
+let changingFrom = null;
+function openChange(oldId) {
+  changingFrom = oldId;
+  const eligible = allWorkers.filter(w => !currentWorkerIds.includes(w.id));
+  document.getElementById('newWorker').innerHTML = eligible.map(w => `<option value="${w.id}">${w.name}</option>`).join('');
+  hideError(document.getElementById('changeErr'));
+  document.getElementById('changeWrap').style.display = 'block';
+}
+document.getElementById('cancelChange').addEventListener('click', () => {
+  document.getElementById('changeWrap').style.display = 'none';
+});
+document.getElementById('confirmChange').addEventListener('click', async () => {
+  const newId = document.getElementById('newWorker').value;
+  const changeErr = document.getElementById('changeErr');
+  if (!newId) return showError(changeErr, 'Naya worker chuno');
+  try {
+    await api(`/parties/${partyId}/workers/${changingFrom}`, { method: 'PATCH', body: { new_user_id: Number(newId) } });
+    document.getElementById('changeWrap').style.display = 'none';
+    await load();
+  } catch (ex) { showError(changeErr, ex.message); }
+});
+
+load();
+</script>
+</body>
+</html>

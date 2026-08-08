@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>New Register — Roz Ka Hisaab</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="page">
+  <header class="top">
+    <div class="crumb"><a class="back-arrow" href="index.html">←</a> New Register</div>
+    <div class="stamp"><span class="star">★</span>DATE: <span id="dateOut"></span></div>
+  </header>
+
+  <div class="card">
+    <div id="err" class="error-box"></div>
+    <form id="regForm" class="stack">
+      <div class="field">
+        <label for="name">Name</label>
+        <input id="name" required autocomplete="name">
+      </div>
+      <div class="field">
+        <label for="phone">Phone Number</label>
+        <input id="phone" required inputmode="numeric" autocomplete="tel">
+      </div>
+      <div class="field">
+        <label for="address">Address</label>
+        <input id="address" autocomplete="street-address">
+      </div>
+      <button type="submit" class="btn-primary btn-block">Register</button>
+    </form>
+    <p class="hint">Register hone ke baad Worker Panel se apna phone number daal kar login kar sakte ho.</p>
+  </div>
+</div>
+<script src="js/api.js"></script>
+<script>
+document.getElementById('dateOut').textContent = todayStamp();
+const err = document.getElementById('err');
+
+document.getElementById('regForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  hideError(err);
+  const name = document.getElementById('name').value.trim();
+  const phone = document.getElementById('phone').value.trim();
+  const address = document.getElementById('address').value.trim();
+  try {
+    const data = await api('/auth/register-worker', { method: 'POST', body: { name, phone, address } });
+    Session.save(data.token, data.user);
+    window.location.href = 'worker-dashboard.html';
+  } catch (ex) {
+    showError(err, ex.message);
+  }
+});
+</script>
+</body>
+</html>

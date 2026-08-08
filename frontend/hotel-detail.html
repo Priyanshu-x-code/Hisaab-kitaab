@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hotel Detail — Roz Ka Hisaab</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="page">
+  <header class="top">
+    <div class="crumb"><a class="back-arrow" href="hotel-account.html">←</a> All Hotel Info</div>
+    <div class="stamp"><span class="star">★</span>DATE: <span id="dateOut"></span></div>
+  </header>
+
+  <div id="err" class="error-box"></div>
+  <h1 class="title" id="hotelName">—</h1>
+  <p class="subtitle" id="hotelRate">—</p>
+
+  <div class="row" id="malikActions" style="display:none; margin-bottom:16px">
+    <a class="btn-primary btn" id="addPartyLink" href="#">+ Add New Party</a>
+  </div>
+
+  <div class="search-bar">
+    <input id="search" placeholder="Date ya category se search karo...">
+  </div>
+
+  <div class="card" style="padding:0">
+    <table>
+      <thead><tr><th>Date</th><th>Category</th><th>Workers</th><th>Amount</th><th></th></tr></thead>
+      <tbody id="rows"></tbody>
+    </table>
+    <p class="empty-state" id="empty" style="display:none">Abhi tak koi party nahi hui is hotel mein.</p>
+  </div>
+
+  <div class="total-line">
+    <span>Total Amount</span>
+    <span class="amount" id="totalOut">₹0</span>
+  </div>
+</div>
+<script src="js/api.js"></script>
+<script>
+document.getElementById('dateOut').textContent = todayStamp();
+const err = document.getElementById('err');
+const user = Session.requireRole ? Session.user() : null;
+const params = new URLSearchParams(location.search);
+const hotelId = params.get('id');
+if (!hotelId) window.location.href = 'hotel-account.html';
+
+let allParties = [];
+
+async function load() {
+  try {
+    const hotel = await api(`/hotels/${hotelId}`);
+    document.getElementById('hotelName').textContent = hotel.name;
+    document.getElementById('hotelRate').textContent = `${money(hotel.hotel_amount)} per worker, per party`;
+    document.getElementById('totalOut').textContent = money(hotel.total_amount);
+    allParties = hotel.parties;
+
+    if (user && user.role === 'malik') {
+      document.getElementById('malikActions').style.display = 'flex';
+      document.getElementById('addPartyLink').href = `party-new.html?hotel_id=${hotelId}`;
+    }
+    renderRows(allParties);
+  } catch (ex) { showError(err, ex.message); }
+}
+
+function renderRows(list) {
+  const rows = document.getElementById('rows');
+  document.getElementById('empty').style.display = list.length ? 'none' : 'block';
+  rows.innerHTML = list.map(p => `
+    <tr>
+      <td><a href="party-detail.html?hotel_id=${hotelId}&party_id=${p.id}" style="color:var(--ink); text-decoration:underline">${p.date}</a></td>
+      <td><span class="pill">${p.category}</span></td>
+      <td class="num">${p.worker_count}</td>
+      <td class="amount">${money(p.amount)}</td>
+      <td>${user && user.role === 'malik' ? `<button class="btn-sm btn-danger" data-clear="${p.id}">Clear</button>` : ''}</td>
+    </tr>
+  `).join('');
+
+  rows.querySelectorAll('[data-clear]').forEach(b => b.addEventListener('click', () => clearParty(b.dataset.clear)));
+}
+
+document.getElementById('search').addEventListener('input', (e) => {
+  const q = e.target.value.trim().toLowerCase();
+  const filtered = allParties.filter(p => p.date.includes(q) || p.category.toLowerCase().includes(q));
+  renderRows(filtered);
+});
+
+async function clearParty(partyId) {
+  if (!confirm('Yeh party entry clear kar dein? Iska data hat jayega aur workers ka din bhi wapas ho jayega.')) return;
+  try {
+    await api(`/parties/${partyId}`, { method: 'DELETE' });
+    await load();
+  } catch (ex) { showError(err, ex.message); }
+}
+
+load();
+</script>
+</body>
+</html>
